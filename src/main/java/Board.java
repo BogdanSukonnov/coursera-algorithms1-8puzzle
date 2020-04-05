@@ -1,5 +1,7 @@
+import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.StdOut;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Board {
@@ -107,20 +109,58 @@ public class Board {
         addNeighbor(blankRow - 1, blankCol, neighbors);
         addNeighbor(blankRow, blankCol + 1, neighbors);
         addNeighbor(blankRow + 1, blankCol, neighbors);
-        addNeighbor(blankRow, blankCol + 1, neighbors);
+        addNeighbor(blankRow, blankCol - 1, neighbors);
         return neighbors;
     }
 
     // a board that is obtained by exchanging any pair of tiles
-    public Board twin() {}
-
-    // unit testing (not graded)
-    public static void main(String[] args) {}
-
-    private boolean isInPlace(int row, int col) {
-        return tiles[row][col] == dimension * row + col + 1;
+    public Board twin() {
+        Board twin = new Board(tiles);
+        int row1 = 0;
+        int col1 = 0;
+        int row2 = 1;
+        int col2 = 1;
+        if (tiles[row1][col1] == 0) row1 = row2;
+        if (tiles[row2][col2] == 0) row2 = row1;
+        int temp = tiles[row2][col2];
+        tiles[row2][col2] = tiles[row1][col1];
+        tiles[row1][col1] = temp;
+        return twin;
     }
 
+    // unit testing (not graded)
+    public static void main(String[] args) {
+        // for each command-line argument
+        for (String filename : args) {
+
+            // read in the board specified in the filename
+            In in = new In(filename);
+            int n = in.readInt();
+            int[][] tiles = new int[n][n];
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    tiles[i][j] = in.readInt();
+                }
+            }
+
+            // solve the slider puzzle
+            Board board = new Board(tiles);
+            StdOut.printf("\nboard: %s\n", board);
+            StdOut.printf("\ndimension: %s; hamming: %s; manhattan: %s; is goal: %s;\n",
+                    board.dimension(), board.hamming(), board.manhattan(), board.isGoal());
+            StdOut.printf("\nequals twin: %s%s\n", board.equals(board.twin()), board.twin());
+            StdOut.println("\nneigbours:");
+            board.neighbors().forEach(StdOut::println);
+        }
+    }
+
+    private boolean isInPlace(int row, int col) {
+        return tiles[row][col] == getExpected(row, col);
+    }
+
+    private int getExpected(int row, int col) {
+        return (row == dimension-1 && col == dimension-1) ? 0 : dimension*row+col+1;
+    }
 
     private int getColumn(int tile) {
         return tile % dimension;
@@ -131,14 +171,14 @@ public class Board {
     }
 
     private void addNeighbor(int row, int column, List<Board> neighbors) {
-        if (row > 0 && row < dimension && column > 0 && column < dimension) {
+        if (row >= 0 && row < dimension && column >= 0 && column < dimension) {
             Board neighbor = new Board(tiles);
-            moveIn(neighbor, row, column);
+            moveToBlank(neighbor, row, column);
             neighbors.add(neighbor);
         }
     }
 
-    private static void moveIn(Board board, int tileRow, int tileCol) {
+    private static void moveToBlank(Board board, int tileRow, int tileCol) {
         board.tiles[board.blankRow][board.blankCol] = board.tiles[tileRow][tileCol];
         board.tiles[tileRow][tileCol] = 0;
         board.blankRow = tileRow;
