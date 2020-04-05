@@ -15,17 +15,13 @@ public class Board {
     // where tiles[row][col] = tile at (row, col)
     public Board(int[][] tiles) {
 
-        dimension = tiles.length;
-        this.tiles = new int[dimension][dimension];
-
-        for (int row = 0; row < dimension; ++row) {
-            System.arraycopy(tiles[row], 0, this.tiles[row], 0, dimension);
-        }
+        this.tiles = deepCopy(tiles);
+        dimension = this.tiles.length;
 
         // find blank tile (zero)
         for (int row = 0; row < dimension; ++row) {
             for (int col = 0; col < dimension; ++col) {
-                if (tiles[row][col] == 0) {
+                if (this.tiles[row][col] == 0) {
                     blankRow = row;
                     blankCol = col;
                     break;
@@ -91,12 +87,18 @@ public class Board {
     }
 
     // does this board equal y?
+    @Override
     public boolean equals(Object y) {
         if (y == this) return true;
         if (y == null) return true;
         if (y.getClass() != getClass()) return false;
         Board that = (Board) y;
         return Arrays.deepEquals(that.tiles, tiles);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(tiles);
     }
 
     // all neighboring boards
@@ -111,23 +113,23 @@ public class Board {
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        Board twin = new Board(tiles);
+        int[][] twinTiles = deepCopy(tiles);
         int row1 = 0;
         int col1 = 0;
         int row2 = 0;
         int col2 = 1;
-        if (tiles[row1][col1] == 0) {
+        if (twinTiles[row1][col1] == 0) {
             row1 = 1;
             col1 = 1;
         }
-        if (tiles[row2][col2] == 0) {
+        if (twinTiles[row2][col2] == 0) {
             row2 = 1;
             col2 = 0;
         }
-        int temp = tiles[row2][col2];
-        tiles[row2][col2] = tiles[row1][col1];
-        tiles[row1][col1] = temp;
-        return twin;
+        int temp = twinTiles[row2][col2];
+        twinTiles[row2][col2] = twinTiles[row1][col1];
+        twinTiles[row1][col1] = temp;
+        return new Board(twinTiles);
     }
 
     // unit testing (not graded)
@@ -185,5 +187,13 @@ public class Board {
         board.tiles[tileRow][tileCol] = 0;
         board.blankRow = tileRow;
         board.blankCol = tileCol;
+    }
+
+    private int[][] deepCopy(int[][] original) {
+        int [][] copy = new int[original.length][original.length];
+        for (int row = 0; row < original.length; ++row) {
+            copy[row] = Arrays.copyOf(original[row], original.length);
+        }
+        return copy;
     }
 }

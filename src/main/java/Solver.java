@@ -1,31 +1,50 @@
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.MinPQ;
-import edu.princeton.cs.algs4.Stack;
+import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.StdOut;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class Solver {
 
-    private Stack<Board> solution = new Stack<>();
+    private Queue<Board> solution = new Queue<>();
     private int moves = 0;
     private boolean isSolvable = false;
 
     // find a solution to the initial board (using the A* algorithm)
     public Solver(Board initial) {
         if (initial == null) throw new IllegalArgumentException("Solver with null board");
-        MinPQ<SearchNode> minPQ = new MinPQ<>();
-        minPQ.insert(new SearchNode(initial, 0, null));
+        MinPQ<SearchNode> mainPQ = new MinPQ<>();
+        mainPQ.insert(new SearchNode(initial, 0, null));
+        Set<Board> wereMain = new HashSet<>();
+        MinPQ<SearchNode> twinPQ = new MinPQ<>();
+        twinPQ.insert(new SearchNode(initial.twin(), 0, null));
+        Set<Board> wereTwin = new HashSet<>();
         while (true) {
-            SearchNode searchNode = minPQ.delMin();
-            solution.push(searchNode.getBoard());
-            if (searchNode.getBoard().isGoal()) {
-                moves = searchNode.getMoves();
+            SearchNode mainNode = doNextMove(mainPQ, wereMain);
+            solution.enqueue(mainNode.getBoard());
+            if (mainNode.getBoard().isGoal()) {
+                moves = mainNode.getMoves();
+                isSolvable = true;
                 break;
             }
-            for (Board neighbor : searchNode.getBoard().neighbors()) {
-                if (neighbor.equals(searchNode.getPreviousNode().getBoard())) continue;
-                minPQ.insert(new SearchNode(neighbor, searchNode.getMoves() + 1, searchNode));
+            if (twinPQ.min().getBoard().isGoal()) {
+                solution = new Queue<>();
+                break;
             }
+            doNextMove(twinPQ, wereTwin);
         }
+    }
+
+    private SearchNode doNextMove(MinPQ<SearchNode> minPQ, Set<Board> wereSet) {
+        SearchNode searchNode = minPQ.delMin();
+        wereSet.add(searchNode.getBoard());
+        for (Board neighbor : searchNode.getBoard().neighbors()) {
+            if (wereSet.contains(neighbor)) continue;
+            minPQ.insert(new SearchNode(neighbor, searchNode.getMoves() + 1, searchNode));
+        }
+        return searchNode;
     }
 
     // is the initial board solvable? (see below)
