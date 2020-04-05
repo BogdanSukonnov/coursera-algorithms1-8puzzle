@@ -1,8 +1,8 @@
 import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.StdOut;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 public class Board {
 
@@ -57,6 +57,7 @@ public class Board {
         int hamming = 0;
         for (int row = 0; row < dimension; ++row) {
             for (int col = 0; col < dimension; ++col) {
+                if (tiles[row][col] == 0) continue;
                 if (!isInPlace(row, col)) ++hamming;
             }
         }
@@ -68,6 +69,7 @@ public class Board {
         int manhattan = 0;
         for (int row = 0; row < dimension; ++row) {
             for (int col = 0; col < dimension; ++col) {
+                if (tiles[row][col] == 0) continue;
                 if (!isInPlace(row, col)) {
                     int desiredRow = getRow(tiles[row][col] - 1);
                     int desiredColumn = getColumn(tiles[row][col] - 1);
@@ -94,18 +96,12 @@ public class Board {
         if (y == null) return true;
         if (y.getClass() != getClass()) return false;
         Board that = (Board) y;
-        if (that.dimension() != dimension() || that.tiles.length != tiles.length) return false;
-        for (int row = 0; row < dimension; ++row) {
-            for (int col = 0; col < dimension; ++col) {
-                if (that.tiles[row][col] != this.tiles[row][col]) return false;
-            }
-        }
-        return true;
+        return Arrays.deepEquals(that.tiles, tiles);
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
-        List<Board> neighbors = new ArrayList<>(4);
+        Queue<Board> neighbors = new Queue<>();
         addNeighbor(blankRow - 1, blankCol, neighbors);
         addNeighbor(blankRow, blankCol + 1, neighbors);
         addNeighbor(blankRow + 1, blankCol, neighbors);
@@ -118,10 +114,16 @@ public class Board {
         Board twin = new Board(tiles);
         int row1 = 0;
         int col1 = 0;
-        int row2 = 1;
+        int row2 = 0;
         int col2 = 1;
-        if (tiles[row1][col1] == 0) row1 = row2;
-        if (tiles[row2][col2] == 0) row2 = row1;
+        if (tiles[row1][col1] == 0) {
+            row1 = 1;
+            col1 = 1;
+        }
+        if (tiles[row2][col2] == 0) {
+            row2 = 1;
+            col2 = 0;
+        }
         int temp = tiles[row2][col2];
         tiles[row2][col2] = tiles[row1][col1];
         tiles[row1][col1] = temp;
@@ -170,11 +172,11 @@ public class Board {
         return tile / dimension;
     }
 
-    private void addNeighbor(int row, int column, List<Board> neighbors) {
+    private void addNeighbor(int row, int column, Queue<Board> neighbors) {
         if (row >= 0 && row < dimension && column >= 0 && column < dimension) {
             Board neighbor = new Board(tiles);
             moveToBlank(neighbor, row, column);
-            neighbors.add(neighbor);
+            neighbors.enqueue(neighbor);
         }
     }
 
