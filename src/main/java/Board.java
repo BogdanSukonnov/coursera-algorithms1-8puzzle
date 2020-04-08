@@ -6,41 +6,38 @@ import java.util.Arrays;
 
 public class Board {
 
-    private final int[][] tiles;
-    private final int dimension;
-    private int blankRow = -1;
-    private int blankCol = -1;
+    private final char[] tiles;
+    private final char dimension;
+    private char blank = (char) -1;
 
     // create a board from an n-by-n array of tiles,
-    // where tiles[row][col] = tile at (row, col)
+    // where tiles[i(row, col)] = tile at (row, col)
     public Board(int[][] tiles) {
 
-        this.tiles = deepCopy(tiles);
-        dimension = this.tiles.length;
+        dimension = (char) tiles.length;
+        this.tiles = flatCopy(tiles);
 
         // find blank tile (zero)
-        for (int row = 0; row < dimension; ++row) {
-            for (int col = 0; col < dimension; ++col) {
-                if (this.tiles[row][col] == 0) {
-                    blankRow = row;
-                    blankCol = col;
-                    break;
-                }
+        for (int i = 0; i < this.tiles.length; ++i) {
+            if (this.tiles[i] == (char) 0) {
+                blank = (char) i;
+                break;
             }
         }
-        if (blankRow == -1) throw new IllegalArgumentException("no blank tile");
+        if (blank == (char) -1) throw new IllegalArgumentException("no blank tile");
     }
 
     // string representation of this board
     public String toString() {
-        StringBuilder stringBuilder = new StringBuilder(dimension);
-        for (int row = 0; row < dimension; ++row) {
-            stringBuilder.append("\n");
-            for (int col = 0; col < dimension; ++col) {
-                stringBuilder.append(String.format("%s%s", col == 0 ? "" : " ", tiles[row][col]));
+        StringBuilder s = new StringBuilder();
+        s.append((int) dimension).append("\n");
+        for (int row = 0; row < dimension; row++) {
+            for (int col = 0; col < dimension; col++) {
+                s.append(String.format("%2s ", (int) tiles[i(row, col)]));
             }
+            s.append("\n");
         }
-        return stringBuilder.toString();
+        return s.toString();
     }
 
     // board dimension n
@@ -53,8 +50,8 @@ public class Board {
         int hamming = 0;
         for (int row = 0; row < dimension; ++row) {
             for (int col = 0; col < dimension; ++col) {
-                if (tiles[row][col] == 0) continue;
-                if (!isInPlace(row, col)) ++hamming;
+                if (tiles[i(row, col)] == (char) 0) continue;
+                if (isNotInPlace(row, col)) ++hamming;
             }
         }
         return hamming;
@@ -65,10 +62,10 @@ public class Board {
         int manhattan = 0;
         for (int row = 0; row < dimension; ++row) {
             for (int col = 0; col < dimension; ++col) {
-                if (tiles[row][col] == 0) continue;
-                if (!isInPlace(row, col)) {
-                    int desiredRow = getRow(tiles[row][col] - 1);
-                    int desiredColumn = getColumn(tiles[row][col] - 1);
+                if (tiles[i(row, col)] == (char) 0) continue;
+                if (isNotInPlace(row, col)) {
+                    int desiredRow = getRow(tiles[i(row, col)] - 1, dimension);
+                    int desiredColumn = getColumn(tiles[i(row, col)] - 1, dimension);
                     manhattan = manhattan + Math.abs(row - desiredRow) + Math.abs(col - desiredColumn);
                 }
             }
@@ -80,40 +77,37 @@ public class Board {
     public boolean isGoal() {
         for (int row = 0; row < dimension; ++row) {
             for (int col = 0; col < dimension; ++col) {
-                if (!isInPlace(row, col)) return false;
+                if (isNotInPlace(row, col)) return false;
             }
         }
         return true;
     }
 
-    // does this board equal y?
+    // does this board equal other?
     @Override
-    public boolean equals(Object y) {
-        if (y == this) return true;
-        if (y == null) return true;
-        if (y.getClass() != getClass()) return false;
-        Board that = (Board) y;
-        return Arrays.deepEquals(that.tiles, tiles);
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(tiles);
+    public boolean equals(Object other) {
+        if (other == this) return true;
+        if (other == null) return false;
+        if (other.getClass() != getClass()) return false;
+        Board that = (Board) other;
+        return Arrays.equals(that.tiles, tiles);
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
         Queue<Board> neighbors = new Queue<>();
-        addNeighbor(blankRow - 1, blankCol, neighbors);
-        addNeighbor(blankRow, blankCol + 1, neighbors);
-        addNeighbor(blankRow + 1, blankCol, neighbors);
-        addNeighbor(blankRow, blankCol - 1, neighbors);
+        int blankRow = getRow(blank, dimension);
+        int blankColumn = getColumn(blank, dimension);
+        addNeighbor(blankRow - 1, blankColumn, neighbors);
+        addNeighbor(blankRow, blankColumn + 1, neighbors);
+        addNeighbor(blankRow + 1, blankColumn, neighbors);
+        addNeighbor(blankRow, blankColumn - 1, neighbors);
         return neighbors;
     }
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        int[][] twinTiles = deepCopy(tiles);
+        int[][] twinTiles = getDoubleArray();
         int row1 = 0;
         int col1 = 0;
         int row2 = 0;
@@ -158,42 +152,60 @@ public class Board {
         }
     }
 
-    private boolean isInPlace(int row, int col) {
-        return tiles[row][col] == getExpected(row, col);
+    private int[][] getDoubleArray() {
+        int[][] twinTiles = new int[dimension][dimension];
+        for (int row = 0; row < dimension; ++row) {
+            for (int col = 0; col < dimension; ++col) {
+                twinTiles[row][col] = tiles[i(row, col)];
+            }
+        }
+        return twinTiles;
     }
 
-    private int getExpected(int row, int col) {
-        return (row == dimension-1 && col == dimension-1) ? 0 : dimension*row+col+1;
+    private boolean isNotInPlace(int row, int col) {
+        return tiles[i(row, col)] != getExpected(row, col);
     }
 
-    private int getColumn(int tile) {
-        return tile % dimension;
+    private char getExpected(int row, int col) {
+        return (row == dimension-1 && col == dimension-1) ?
+                (char) 0 :
+                (char) (dimension * row + col + 1);
     }
 
-    private int getRow(int tile) {
-        return tile / dimension;
+    private static int getColumn(int i, char dimension) {
+        return i % dimension;
+    }
+
+    private static int getRow(int i, char dimension) {
+        return i / dimension;
     }
 
     private void addNeighbor(int row, int column, Queue<Board> neighbors) {
         if (row >= 0 && row < dimension && column >= 0 && column < dimension) {
-            Board neighbor = new Board(tiles);
-            moveToBlank(neighbor, row, column);
-            neighbors.enqueue(neighbor);
+            int[][] neighbourArray = getDoubleArray();
+            moveToBlank(neighbourArray, row, column, blank);
+            neighbors.enqueue(new Board(neighbourArray));
         }
     }
 
-    private static void moveToBlank(Board board, int tileRow, int tileCol) {
-        board.tiles[board.blankRow][board.blankCol] = board.tiles[tileRow][tileCol];
-        board.tiles[tileRow][tileCol] = 0;
-        board.blankRow = tileRow;
-        board.blankCol = tileCol;
+    private static void moveToBlank(int[][] tiles, int tileRow, int tileCol, char blank) {
+        tiles[getRow(blank, (char) tiles.length)][getColumn(blank, (char) tiles.length)] =
+                tiles[tileRow][tileCol];
+        tiles[tileRow][tileCol] = 0;
     }
 
-    private int[][] deepCopy(int[][] original) {
-        int [][] copy = new int[original.length][original.length];
-        for (int row = 0; row < original.length; ++row) {
-            copy[row] = Arrays.copyOf(original[row], original.length);
+    private static char[] flatCopy(int[][] original) {
+        int dimension = original.length;
+        char[] copy = new char[dimension * dimension];
+        for (int row = 0; row < dimension; ++row) {
+            for (int col = 0; col < dimension; ++col) {
+                copy[row * dimension + col] = (char) original[row][col];
+            }
         }
         return copy;
+    }
+
+    private int i(int row, int col) {
+        return row * dimension + col;
     }
 }
